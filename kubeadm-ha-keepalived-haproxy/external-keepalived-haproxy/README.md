@@ -8,9 +8,9 @@ This documentation guides you in setting up a cluster with three master nodes, o
 |----|----|----|----|----|----|
 |Load Balancer|loadbalancer1.example.com|172.16.16.51|Ubuntu 20.04|512M|1|
 |Load Balancer|loadbalancer2.example.com|172.16.16.52|Ubuntu 20.04|512M|1|
-|Master|kmaster1.example.com|172.16.16.101|Ubuntu 20.04|2G|2|
-|Master|kmaster2.example.com|172.16.16.102|Ubuntu 20.04|2G|2|
-|Master|kmaster3.example.com|172.16.16.103|Ubuntu 20.04|2G|2|
+|Master|kmaster1.example.com|192.168.15.201|Ubuntu 20.04|2G|2|
+|Master|kmaster2.example.com|192.168.15.202|Ubuntu 20.04|2G|2|
+|Master|kmaster3.example.com|192.168.15.203|Ubuntu 20.04|2G|2|
 |Worker|kworker1.example.com|172.16.16.201|Ubuntu 20.04|2G|2|
 
 > * Password for the **root** account on all these virtual machines is **kubeadmin**
@@ -19,7 +19,7 @@ This documentation guides you in setting up a cluster with three master nodes, o
 ### Virtual IP managed by Keepalived on the load balancer nodes
 |Virtual IP|
 |----|
-|172.16.16.100|
+|192.168.15.200|
 
 ## Pre-requisites
 If you want to try this in a virtualized environment on your workstation
@@ -54,8 +54,8 @@ errorExit() {
 }
 
 curl --silent --max-time 2 --insecure https://localhost:6443/ -o /dev/null || errorExit "Error GET https://localhost:6443/"
-if ip addr | grep -q 172.16.16.100; then
-  curl --silent --max-time 2 --insecure https://172.16.16.100:6443/ -o /dev/null || errorExit "Error GET https://172.16.16.100:6443/"
+if ip addr | grep -q 192.168.15.200; then
+  curl --silent --max-time 2 --insecure https://192.168.15.200:6443/ -o /dev/null || errorExit "Error GET https://192.168.15.200:6443/"
 fi
 EOF
 
@@ -75,7 +75,7 @@ vrrp_script check_apiserver {
 
 vrrp_instance VI_1 {
     state BACKUP
-    interface eth1
+    interface eth0
     virtual_router_id 1
     priority 100
     advert_int 5
@@ -84,7 +84,7 @@ vrrp_instance VI_1 {
         auth_pass mysecret
     }
     virtual_ipaddress {
-        172.16.16.100
+        192.168.15.200
     }
     track_script {
         check_apiserver
@@ -114,9 +114,9 @@ backend kubernetes-backend
   mode tcp
   option ssl-hello-chk
   balance roundrobin
-    server kmaster1 172.16.16.101:6443 check fall 3 rise 2
-    server kmaster2 172.16.16.102:6443 check fall 3 rise 2
-    server kmaster3 172.16.16.103:6443 check fall 3 rise 2
+    server cp01 192.168.15.201:6443 check fall 3 rise 2
+    server cp02 192.168.15.202:6443 check fall 3 rise 2
+    server cp03 192.168.15.203:6443 check fall 3 rise 2
 
 EOF
 ```
@@ -186,7 +186,7 @@ sysctl --system
 ## On kmaster1
 ##### Initialize Kubernetes Cluster
 ```
-kubeadm init --control-plane-endpoint="172.16.16.100:6443" --upload-certs --apiserver-advertise-address=172.16.16.101 --pod-network-cidr=192.168.0.0/16
+kubeadm init --control-plane-endpoint="192.168.15.200:6443" --upload-certs  --pod-network-cidr=10.10.0.0/16
 ```
 Copy the commands to join other master nodes and worker nodes.
 ##### Deploy Calico network
@@ -207,7 +207,7 @@ kubectl --kubeconfig=/etc/kubernetes/admin.conf create -f https://docs.projectca
 On your host machine
 ```
 mkdir ~/.kube
-scp root@172.16.16.101:/etc/kubernetes/admin.conf ~/.kube/config
+scp root@192.168.15.201:/etc/kubernetes/admin.conf ~/.kube/config
 ```
 Password for root account is kubeadmin (if you used my Vagrant setup)
 
@@ -217,4 +217,23 @@ kubectl cluster-info
 kubectl get nodes
 ```
 
-Have Fun!!
+You can now join any number of the control-plane node running the following command on each as root:
+
+  kubeadm join 192.168.15.200:6443 --token wvw1ci.bh3nflrcenca7i1v \
+        --discovery-token-ca-cert-hash sha256:a1e600cc78f94852d0557883230110c65b855ab000a9df59ab08fe12c9329f9e \
+        --control-plane --certificate-key d08396311c2c4de5056d6642fd6977868a45e3ce99eb366e697a60f2cc33211c
+
+Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
+As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
+"kubeadm init phase upload-certs --upload-certs" to reload certs afterward.
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.15.200:6443 --token wvw1ci.bh3nflrcenca7i1v \
+        --discovery-token-ca-cert-hash sha256:a1e600cc78f94852d0557883230110c65b855ab000a9df59ab08fe12c9329f9e
+root@cp01:~# `
+
+
+
+kubeadm join 192.168.15.203:6443 --token t0ly51.sny029em6o5sn3j1 \
+        --discovery-token-ca-cert-hash sha256:bdd2085baf8ceb4a706e46b1ae86a0eff2a9d5c829a49712c48a18f4cd2c468c

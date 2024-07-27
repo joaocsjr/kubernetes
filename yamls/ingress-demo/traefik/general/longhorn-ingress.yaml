@@ -1,0 +1,26 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: TraefikService
+metadata:
+  name: longhorn
+  namespace: longhorn-system
+spec:
+  weighted:
+    services:
+      - name:  longhorn-frontend
+        port: 80
+        weight: 1
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: nginx
+  namespace: longhorn-system
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: Host(`longhorn.ks.cacttus.us`)
+    kind: Rule
+    services:
+    - name: longhorn
+      kind: TraefikService

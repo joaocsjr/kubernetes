@@ -1,0 +1,8 @@
+kubectl create -f manifests/setup
+kubectl get servicemonitors -A
+kubectl apply -f manifests/
+
+
+
+
+helm  install kube-prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespacer

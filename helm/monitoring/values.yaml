@@ -1,0 +1,12 @@
+grafana:
+  enabled: true
+    #adminPassword: "admin"
+  persistence:
+    enabled: true
+    accessModes: ["ReadWriteOnce"]
+    size: 1Gi
+  ingress:
+    enabled: true
+      #ingressClassName: nginx
+    hosts:
+      - grafana.ks1.cacttus.us

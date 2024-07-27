@@ -1,0 +1,26 @@
+
+## PVC for MariaDB
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: mariadb-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 3Gi
+---
+## PVC for WordPress
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: sc-datasources-volume
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi

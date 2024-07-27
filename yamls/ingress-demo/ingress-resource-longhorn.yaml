@@ -1,17 +1,17 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-resource-1
+  name: ingress-resource-longhorn
 spec:
   ingressClassName: nginx
   rules:
-  - host: nginx.home.lab
+  - host: pv.kube.cloudmetal.local
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: nginx-deploy-main
+            name: longhorn-frontend
             port: 
               number: 80
