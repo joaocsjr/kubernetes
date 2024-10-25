@@ -1,57 +1,45 @@
----
-apiVersion: v1
-kind: Namespace
-metadata:
-    name: influxdb
----
+# influxdb-deployment.yaml
+
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
-    labels:
-        app: influxdb
-    name: influxdb
-    namespace: influxdb
+  name: influxdb
 spec:
-    replicas: 1
-    selector:
-        matchLabels:
-            app: influxdb
-    serviceName: influxdb
-    template:
-        metadata:
-            labels:
-                app: influxdb
-        spec:
-            containers:      
-              - image: influxdb:2.3.0-alpine
-                name: influxdb
-                ports:
-                  - containerPort: 8086
-                    name: influxdb
-                volumeMounts:
-                  - mountPath: /var/lib/influxdb2
-                    name: data
-    volumeClaimTemplates:
-      - metadata:
-            name: data
-            namespace: influxdb
-        spec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-                requests:
-                    storage: 50G
+  replicas: 1
+  selector:
+    matchLabels:
+      app: influxdb
+  template:
+    metadata:
+      labels:
+        app: influxdb
+    spec:
+      containers:
+        - name: influxdb
+          image: influxdb:2.7
+          ports:
+            - containerPort: 8086
+          volumeMounts:
+            - name: influxdb-storage
+              mountPath: /var/lib/influxdb2
+      volumes:
+        - name: influxdb-storage
+          persistentVolumeClaim:
+            claimName: influxdb-pvc
 ---
+# influxdb-service.yaml
+
 apiVersion: v1
 kind: Service
 metadata:
-    name: influxdb
-    namespace: influxdb
+  name: influxdb
 spec:
-    ports:
-      - name: influxdb
-        port: 8086
-        targetPort: 8086
-    selector:
-        app: influxdb
-    type: NodePort
+  selector:
+    app: influxdb
+  ports:
+    - protocol: TCP
+      port: 8086      # Port on which the service will be exposed internally within the cluster
+      targetPort: 8086 # Port on the container
+      nodePort: 30007  # Port on each node to access the service from outside the cluster
+  type: NodePort
+

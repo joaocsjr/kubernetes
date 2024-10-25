@@ -1,0 +1,16 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: movie-ingress
+  namespace: app
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`movie.ks1.cacttus.us`)
+      kind: Rule
+      services:
+        - name: movies-service
+          port: 80
+
